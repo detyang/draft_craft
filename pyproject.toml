@@ -1,0 +1,19 @@
+[project]
+name = "draft-craft"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "detyang22", email = "detyang22@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "streamlit>=1.48.1",
+]
+
+[project.scripts]
+draft-craft = "draft_craft:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
