@@ -1,0 +1,4 @@
+/* Hide only the hover "Expand sidebar" button */
+button[title="Expand sidebar"] {
+    display: none !important;
+}
