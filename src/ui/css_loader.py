@@ -4,8 +4,9 @@ from __future__ import annotations
 from pathlib import Path
 import streamlit as st
 
-# Cache so we don't re-read the same CSS file on every rerun
+# cache the read operation to avoid re-reading files unnecessarily
 @st.cache_resource
+
 def _read_text(path: str | Path) -> str:
     p = Path(path)
     if not p.exists():
