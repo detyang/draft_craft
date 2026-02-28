@@ -2,7 +2,6 @@ import streamlit as st
 
 from src.ui.css_loader import load_css
 from src.ui.countdown import render_countdown
-
 st.set_page_config(page_title="Draft Craft", layout="wide")
 
 # Load your stylesheet(s)
