@@ -15,6 +15,49 @@ HEADERS = {
     )
 }
 
+TEAM_ABBREV_ALIASES = {
+    "gs": "GSW",
+    "no": "NOP",
+    "ny": "NYK",
+    "sa": "SAS",
+    "atlanta": "ATL",
+    "boston": "BOS",
+    "brooklyn": "BKN",
+    "charlotte": "CHA",
+    "chicago": "CHI",
+    "cleveland": "CLE",
+    "dallas": "DAL",
+    "denver": "DEN",
+    "detroit": "DET",
+    "golden st": "GSW",
+    "golden state": "GSW",
+    "houston": "HOU",
+    "indiana": "IND",
+    "la clippers": "LAC",
+    "los angeles clippers": "LAC",
+    "la lakers": "LAL",
+    "los angeles lakers": "LAL",
+    "memphis": "MEM",
+    "miami": "MIA",
+    "milwaukee": "MIL",
+    "minnesota": "MIN",
+    "new orleans": "NOP",
+    "new york": "NYK",
+    "oklahoma cty": "OKC",
+    "oklahoma city": "OKC",
+    "orlando": "ORL",
+    "philadelphia": "PHI",
+    "phoenix": "PHX",
+    "portland": "POR",
+    "sacramento": "SAC",
+    "san antonio": "SAS",
+    "toronto": "TOR",
+    "utah": "UTA",
+    "washington": "WAS",
+}
+
+KNOWN_TEAM_ABBREVS = set(TEAM_ABBREV_ALIASES.values())
+
 
 @dataclass
 class Pick:
@@ -29,6 +72,22 @@ def _get(url: str) -> str:
     resp = requests.get(url, headers=HEADERS, timeout=20)
     resp.raise_for_status()
     return resp.text
+
+
+def _normalize_team(team: str) -> str:
+    team = team.strip()
+    if not team:
+        return ""
+
+    # Already an abbreviation (Tankathon format).
+    upper = team.upper()
+    if upper in KNOWN_TEAM_ABBREVS:
+        return upper
+
+    # Normalize full-name aliases from other sources.
+    normalized = re.sub(r"[^a-z0-9 ]+", " ", team.lower())
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return TEAM_ABBREV_ALIASES.get(normalized, team)
 
 
 def fetch_tankathon_mock() -> List[Pick]:
@@ -46,7 +105,7 @@ def fetch_tankathon_mock() -> List[Pick]:
     soup = BeautifulSoup(html, "html.parser")
 
     picks: List[Pick] = []
-    max_picks = 30
+    max_picks = 60
 
     for row in soup.select(".mock-row"):
         if len(picks) >= max_picks:
@@ -76,6 +135,7 @@ def fetch_tankathon_mock() -> List[Pick]:
             team_abbr = (team_img_el.get("alt") or "").strip()
             if not team_abbr:
                 team_abbr = (team_img_el.get("title") or "").strip()
+        team_abbr = _normalize_team(team_abbr)
 
         picks.append(
             Pick(
@@ -89,33 +149,117 @@ def fetch_tankathon_mock() -> List[Pick]:
     return picks
 
 
+def fetch_nbadraftnet_mock() -> List[Pick]:
+    """
+    Scrape NBADraft.net mock draft (Round 1) and return a list of Picks.
+
+    We parse the first table with columns:
+      # | Team | Player | ... | P | ...
+    and map:
+      - pick -> '#'
+      - team -> 'Team' (strip leading '*' markers)
+      - player -> 'Player'
+      - pos -> 'P'
+    """
+    url = "https://www.nbadraft.net/nba-mock-drafts/"
+    html = _get(url)
+    soup = BeautifulSoup(html, "html.parser")
+
+    picks_by_number: Dict[int, Pick] = {}
+    max_picks = 60
+
+    for table in soup.find_all("table"):
+        rows = table.find_all("tr")
+        if not rows:
+            continue
+
+        headers = [th.get_text(" ", strip=True) for th in rows[0].find_all(["th", "td"])]
+        if not headers:
+            continue
+
+        header_index = {h: i for i, h in enumerate(headers)}
+        if not {"#", "Team", "Player", "P"}.issubset(header_index.keys()):
+            continue
+
+        pick_i = header_index["#"]
+        team_i = header_index["Team"]
+        player_i = header_index["Player"]
+        pos_i = header_index["P"]
+
+        for row in rows[1:]:
+            cells = [td.get_text(" ", strip=True) for td in row.find_all("td")]
+            if len(cells) <= max(pick_i, team_i, player_i, pos_i):
+                continue
+
+            pick_txt = cells[pick_i]
+            if not re.fullmatch(r"\d{1,2}", pick_txt):
+                continue
+            pick_num = int(pick_txt)
+            if pick_num > max_picks:
+                continue
+            if pick_num in picks_by_number:
+                continue
+
+            team = re.sub(r"^\*+", "", cells[team_i]).strip()
+            team = _normalize_team(team)
+            player = cells[player_i].strip()
+            pos = cells[pos_i].strip()
+            if not player:
+                continue
+
+            picks_by_number[pick_num] = Pick(
+                pick=pick_num,
+                team=team,
+                player=player,
+                pos=pos,
+                source="NBADraft.net",
+            )
+
+            if len(picks_by_number) >= max_picks:
+                break
+
+        if len(picks_by_number) >= max_picks:
+            break
+
+    picks = [picks_by_number[n] for n in sorted(picks_by_number.keys())]
+    return picks
+
+
 def fetch_all_sources() -> List[Dict]:
     """
-    For now, only Tankathon, but returns a flat list of dicts
-    so the Draft Board page can stay generic.
+    Fetch all supported mock draft sources and return a flat list of dicts.
     """
     out: List[Dict] = []
-    try:
-        for p in fetch_tankathon_mock():
+
+    source_fetchers = [
+        ("Tankathon", fetch_tankathon_mock),
+        ("NBADraft.net", fetch_nbadraftnet_mock),
+    ]
+
+    for source_name, fetcher in source_fetchers:
+        try:
+            for p in fetcher():
+                out.append(
+                    {
+                        "Pick": p.pick,
+                        "Team": p.team,
+                        "Player": p.player,
+                        "Pos": p.pos,
+                        "Source": p.source,
+                    }
+                )
+        except Exception as e:
             out.append(
                 {
-                    "Pick": p.pick,
-                    "Team": p.team,
-                    "Player": p.player,
-                    "Pos": p.pos,
-                    "Source": p.source,
+                    "Pick": None,
+                    "Team": "",
+                    "Player": f"ERROR from {fetcher.__name__}: {e}",
+                    "Pos": "",
+                    "Source": source_name,
                 }
             )
-    except Exception as e:
-        out.append(
-            {
-                "Pick": None,
-                "Team": "",
-                "Player": f"ERROR from fetch_tankathon_mock: {e}",
-                "Pos": "",
-                "Source": "Tankathon",
-            }
-        )
-    # small pause just to be polite; kept for future multi-source
-    time.sleep(0.5)
+
+        # small pause between sources to be polite
+        time.sleep(0.5)
+
     return out
