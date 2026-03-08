@@ -19,6 +19,7 @@ with st.sidebar:
 pg = st.navigation(
     [
         st.Page("pages/0_draft_board.py", title="Draft Board"),
+        st.Page("pages/1_teams.py", title="Teams"),
     ]
 )
 pg.run()
