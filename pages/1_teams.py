@@ -34,7 +34,12 @@ if selected_team:
         # Sort by year descending
         df = df.sort_values("Year", ascending=False).reset_index(drop=True)
 
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        # Only include Position column if it has data
+        cols = ["Year", "Round", "Pick", "Player", "Organization"]
+        if df["Position"].notna().any() and (df["Position"] != "").any():
+            cols.insert(4, "Position")
+
+        st.dataframe(df[cols], use_container_width=True, hide_index=True)
     else:
         st.write("No historical picks found for this team.")
         st.info("If you see errors in the console about network or SSL, you may need to supply a local cache file `src/data/historical_cache.json`.")

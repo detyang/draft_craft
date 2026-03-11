@@ -20,19 +20,19 @@ with st.spinner("Fetching latest mock drafts..."):
     df = get_mock_board()
 
 st.subheader("Tankathon")
-tankathon_df = (
-    df[df["Source"] == "Tankathon"][["Pick", "Team", "Player", "Pos"]]
-    .sort_values("Pick", kind="stable")
-    .reset_index(drop=True)
-)
-st.dataframe(tankathon_df, use_container_width=True, hide_index=True)
+tankathon_df = df[df["Source"] == "Tankathon"].sort_values("Pick", kind="stable").reset_index(drop=True)
+# Only include Pos column if it has data
+cols = ["Pick", "Team", "Player"]
+if tankathon_df["Pos"].notna().any() and (tankathon_df["Pos"] != "").any():
+    cols.append("Pos")
+st.dataframe(tankathon_df[cols], use_container_width=True, hide_index=True)
 
 st.subheader("NBADraft.net")
-nbadraft_df = (
-    df[df["Source"] == "NBADraft.net"][["Pick", "Team", "Player", "Pos"]]
-    .sort_values("Pick", kind="stable")
-    .reset_index(drop=True)
-)
-st.dataframe(nbadraft_df, use_container_width=True, hide_index=True)
+nbadraft_df = df[df["Source"] == "NBADraft.net"].sort_values("Pick", kind="stable").reset_index(drop=True)
+# Only include Pos column if it has data
+cols = ["Pick", "Team", "Player"]
+if nbadraft_df["Pos"].notna().any() and (nbadraft_df["Pos"] != "").any():
+    cols.append("Pos")
+st.dataframe(nbadraft_df[cols], use_container_width=True, hide_index=True)
 
 st.caption(f"Sources: Tankathon, NBADraft.net - Last updated: {datetime.now():%Y-%m-%d %H:%M:%S}")
