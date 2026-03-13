@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
 
-from src.data.historical_drafts import get_historical_picks_for_team
+from src.data.historical_drafts import (
+    get_historical_picks_for_team,
+    get_data_last_updated,
+)
 
 st.title("Teams - Historical Draft Picks")
 
@@ -16,7 +19,8 @@ teams = [
 selected_team = st.selectbox("Select a Team", teams)
 
 if selected_team:
-    st.subheader(f"Historical Draft Picks for {selected_team} (2000 onwards)")
+    # prepare update date early to use after data view
+    updated = get_data_last_updated()
 
     picks = get_historical_picks_for_team(selected_team)
 
@@ -40,6 +44,10 @@ if selected_team:
             cols.insert(4, "Position")
 
         st.dataframe(df[cols], use_container_width=True, hide_index=True)
+        # footer note below the table
+        st.caption(f"Historical Draft Picks (data last updated: {updated})")
     else:
         st.write("No historical picks found for this team.")
         st.info("If you see errors in the console about network or SSL, you may need to supply a local cache file `src/data/historical_cache.json`.")
+        # still show update info even when no picks
+        st.caption(f"Historical Draft Picks (data last updated: {updated})")

@@ -107,3 +107,20 @@ HISTORICAL_DRAFTS = fetch_historical_drafts()
 def get_historical_picks_for_team(team: str) -> List[HistoricalPick]:
     """Get historical draft picks for a specific team from 2000 onwards."""
     return [pick for pick in HISTORICAL_DRAFTS if pick.team == team and pick.year >= 2000]
+
+
+def get_data_last_updated() -> str:
+    """Return a human-readable date when the historical database file was last modified.
+
+    The caller can display this information in the UI so users know how fresh
+    the data is.  If the ``historical.db`` file doesn't exist we return
+    ``"unknown"``.
+    """
+    from pathlib import Path
+    import datetime
+
+    db_path = Path(__file__).parent / "historical.db"
+    if not db_path.exists():
+        return "unknown"
+    ts = db_path.stat().st_mtime
+    return datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
