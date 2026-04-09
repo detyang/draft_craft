@@ -12,7 +12,7 @@ Error fetching 2023: 400 Client Error: Bad Request for url: https://data.nba.net
 To work around this, Draft Craft supports a local cache file at `src/data/historical_cache.json` (legacy) or, preferably, a **SQLite database**.  A helper script is provided:
 
 ```sh
-python scripts/fetch_historical.py [--local-dir <path>] [--sample-only]
+python scripts/fetch_historical.py [--local-dir <path>] [--sample-only] [--skip-season-stats]
 ```
 
 The script does one of three things:
@@ -35,4 +35,30 @@ the database is missing, the app prints a warning and the Teams page will be
 empty.
 
 This approach ensures the app continues to function even when the NBA APIs are inaccessible.
+
+## Draft Pick Score
+
+The SQLite build script now stores three tables:
+
+* `picks`: historical draft selections and player identifiers
+* `player_season_stats`: league-wide season totals fetched from `nba_api`
+* `pick_scores`: a realized `0-100` Draft Pick Score for each pick
+
+The current score is a first-pass realized model, not a scouting model. It:
+
+* aggregates each player's first five NBA seasons using games, minutes, points,
+  rebounds, assists, steals, and blocks
+* converts those totals into percentile-based value components
+* compares that value to the expected value for the same draft slot using a
+  smoothed pick-neighborhood baseline
+* blends absolute player quality with surplus over slot expectation
+* regresses recent picks toward `50` when fewer than five seasons are available
+
+That gives the score an intuitive interpretation:
+
+* `80-100`: home run
+* `65-79`: strong value
+* `50-64`: fair value
+* `35-49`: weak value
+* `0-34`: miss
 
