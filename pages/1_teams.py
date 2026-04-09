@@ -32,7 +32,9 @@ if selected_team:
             "Pick": pick.pick,
             "Player": pick.player,
             "Position": pick.pos,
-            "Organization": pick.organization
+            "Organization": pick.organization,
+            "Draft Pick Score": pick.draft_pick_score,
+            "Score Band": pick.score_band,
         } for pick in picks])
 
         # Sort by year descending
@@ -42,10 +44,15 @@ if selected_team:
         cols = ["Year", "Round", "Pick", "Player", "Organization"]
         if df["Position"].notna().any() and (df["Position"] != "").any():
             cols.insert(4, "Position")
+        if df["Draft Pick Score"].notna().any():
+            df["Draft Pick Score"] = df["Draft Pick Score"].round(1)
+            cols.extend(["Draft Pick Score", "Score Band"])
 
         st.dataframe(df[cols], use_container_width=True, hide_index=True)
         # footer note below the table
         st.caption(f"Historical Draft Picks (data last updated: {updated})")
+        if df["Draft Pick Score"].notna().any():
+            st.caption("Draft Pick Score uses a realized first-five-season value model and regresses recent picks toward 50 when confidence is low.")
     else:
         st.write("No historical picks found for this team.")
         st.info("If you see errors in the console about network or SSL, you may need to supply a local cache file `src/data/historical_cache.json`.")
