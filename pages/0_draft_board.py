@@ -15,9 +15,7 @@ def get_mock_board() -> pd.DataFrame:
     df = df.sort_values(["Source", "Pick"], kind="stable").reset_index(drop=True)
     return df
 
-
-with st.spinner("Fetching latest mock drafts..."):
-    df = get_mock_board()
+df = get_mock_board()
 
 st.subheader("Tankathon")
 tankathon_df = df[df["Source"] == "Tankathon"].sort_values("Pick", kind="stable").reset_index(drop=True)
