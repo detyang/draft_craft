@@ -2,6 +2,7 @@ import streamlit as st
 
 from src.ui.css_loader import load_css
 from src.ui.countdown import render_countdown
+from src.ui.loading_overlay import show_loading_overlay
 
 st.set_page_config(page_title="Draft Craft", layout="wide")
 
@@ -22,4 +23,9 @@ pg = st.navigation(
         st.Page("pages/1_teams.py", title="Teams"),
     ]
 )
-pg.run()
+
+loading_overlay = show_loading_overlay()
+try:
+    pg.run()
+finally:
+    loading_overlay.empty()
