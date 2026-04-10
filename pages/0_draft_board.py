@@ -7,7 +7,7 @@ from src.data.mock_sources import fetch_all_sources
 st.title("Draft Board - Mock Draft Sources")
 
 
-@st.cache_data(ttl=60 * 30)
+@st.cache_data(ttl=60 * 30, show_spinner=False)
 def get_mock_board() -> pd.DataFrame:
     data = fetch_all_sources()
     df = pd.DataFrame(data)
