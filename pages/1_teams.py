@@ -52,7 +52,11 @@ if selected_team:
         # footer note below the table
         st.caption(f"Historical Draft Picks (data last updated: {updated})")
         if df["Draft Pick Score"].notna().any():
-            st.caption("Draft Pick Score uses a realized first-five-season value model and regresses recent picks toward 50 when confidence is low.")
+            st.caption(
+                "Draft Pick Score blends first-five-season production with position-aware weights, "
+                "defensive impact, and career-to-date honors (All-Star/All-NBA/MVP/DPOY/ROY), then "
+                "regresses recent picks toward 50 when confidence is low."
+            )
     else:
         st.write("No historical picks found for this team.")
         st.info("If you see errors in the console about network or SSL, you may need to supply a local cache file `src/data/historical_cache.json`.")
